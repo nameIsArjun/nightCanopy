@@ -172,7 +172,7 @@ export const CanopyCanvas: React.FC<CanopyCanvasProps> = ({
     }
   }, [triggerSimulatedNodCount]);
 
-  // Process incoming new stars from Thought Vault submission
+  // Process incoming new stars from Thought Vault submission or Parting Embers
   useEffect(() => {
     if (newStarQueue.length === 0 || !canvasRef.current) return;
 
@@ -185,14 +185,15 @@ export const CanopyCanvas: React.FC<CanopyCanvasProps> = ({
 
       const newStar: ThoughtStar = {
         id: newRef.id,
-        x: width * 0.5 + (Math.random() - 0.5) * 100,
+        x: width * 0.5 + (Math.random() - 0.5) * 120,
         y: height * 0.85,
         vx: (Math.random() - 0.5) * 0.15,
-        vy: -0.3 - Math.random() * 0.2,
-        size: 16,
+        vy: -0.35 - Math.random() * 0.2,
+        size: newRef.isEmber ? 18 : 16,
         twinklePhase: 0,
-        twinkleSpeed: 0.02,
+        twinkleSpeed: newRef.isEmber ? 0.03 : 0.02,
         reflection: newRef,
+        isEmber: newRef.isEmber,
       };
 
       starsRef.current.unshift(newStar);
@@ -337,7 +338,7 @@ export const CanopyCanvas: React.FC<CanopyCanvasProps> = ({
         ctx.shadowBlur = 0;
       });
 
-      // Render Floating Thought Stars
+      // Render Floating Thought Stars & Ember Stars
       starsRef.current.forEach((star) => {
         star.x += star.vx;
         star.y += star.vy;
@@ -355,10 +356,23 @@ export const CanopyCanvas: React.FC<CanopyCanvasProps> = ({
         const twinkleFactor = Math.sin(star.twinklePhase);
         const starAlpha = Math.max(0.4, Math.min(0.95, 0.7 + twinkleFactor * 0.25));
 
+        const colorPrefix = star.isEmber
+          ? "rgba(251, 146, 60, "
+          : "rgba(253, 230, 138, ";
+
         ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size + 4 + twinkleFactor * 2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(253, 230, 138, ${starAlpha * 0.12})`;
+        ctx.arc(star.x, star.y, star.size + (star.isEmber ? 8 : 4) + twinkleFactor * 2, 0, Math.PI * 2);
+        ctx.fillStyle = `${colorPrefix}${starAlpha * (star.isEmber ? 0.25 : 0.12)})`;
         ctx.fill();
+
+        if (star.isEmber) {
+          // Extra pulsing ring around Ember Star
+          ctx.beginPath();
+          ctx.arc(star.x, star.y, star.size + 14 + Math.sin(star.twinklePhase * 1.5) * 4, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(244, 114, 182, ${starAlpha * 0.35})`;
+          ctx.lineWidth = 1;
+          ctx.stroke();
+        }
 
         drawStar(
           ctx,
@@ -367,7 +381,7 @@ export const CanopyCanvas: React.FC<CanopyCanvasProps> = ({
           4,
           star.size,
           star.size / 2.5,
-          "rgba(253, 230, 138, ",
+          colorPrefix,
           starAlpha
         );
       });

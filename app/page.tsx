@@ -70,6 +70,41 @@ export default function Home() {
     setActiveChatDot(dot);
   };
 
+  // Point 2 & 4: Handle Ephemeral Chat closing with optional Parting Ember gift & Grounding Buffer Toast
+  const handleCloseChat = (partingEmber?: import("@/types/canopy").EmberGift) => {
+    if (partingEmber) {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      const emberStar: Reflection = {
+        id: `ember-star-${Date.now()}`,
+        text: `Parting Ember: ${partingEmber.message}`,
+        timestamp: timeStr,
+        authorTag: activeChatDot ? activeChatDot.userTag : "Canopy Companion",
+        isEmber: true,
+      };
+      setNewStarQueue((prev) => [...prev, emberStar]);
+    }
+
+    setActiveChatDot(null);
+
+    // Point 4: Post-Chat Re-anchoring & Grounding Buffer Toast (6-second duration)
+    setToastMessage(
+      "Session ended gently. Take a quiet breath... You were heard under the canopy tonight 🌙"
+    );
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 6000);
+  };
+
+  // Point 5: Handle Mutual Silent Gratitude notification
+  const handleSendThankYou = () => {
+    setToastMessage("A quiet thank you was shared. Your presence mattered 💖");
+    setSimulatedNodCount((prev) => prev + 1);
+    setTimeout(() => {
+      setToastMessage(null);
+    }, 5000);
+  };
+
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-[#0B0D12]">
       {/* Interactive HTML5 Canopy Canvas */}
@@ -81,16 +116,16 @@ export default function Home() {
         triggerSimulatedNodCount={simulatedNodCount}
       />
 
-      {/* Ambient Toast Notification for Incoming Nod */}
+      {/* Ambient Toast Notification for Incoming Nod / Grounding Buffer */}
       <AnimatePresence>
         {toastMessage && (
           <motion.div
             initial={{ opacity: 0, y: -20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -15, scale: 0.95 }}
-            className="fixed top-20 left-1/2 -translate-x-1/2 z-40 ambient-glass px-4 py-2 rounded-full border border-amber-200/30 text-xs text-amber-100 flex items-center gap-2 shadow-xl"
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-40 ambient-glass px-5 py-2.5 rounded-full border border-amber-200/30 text-xs text-amber-100 flex items-center gap-2 shadow-2xl backdrop-blur-xl"
           >
-            <Heart className="w-3.5 h-3.5 text-pink-300 animate-pulse" />
+            <Heart className="w-4 h-4 text-pink-300 animate-pulse shrink-0" />
             <span>{toastMessage}</span>
           </motion.div>
         )}
@@ -165,7 +200,8 @@ export default function Home() {
       <EphemeralChat
         key={activeChatDot ? activeChatDot.id : "none"}
         isOpen={activeChatDot !== null}
-        onClose={() => setActiveChatDot(null)}
+        onClose={handleCloseChat}
+        onSendThankYou={handleSendThankYou}
         targetDot={activeChatDot}
       />
 

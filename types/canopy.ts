@@ -20,11 +20,27 @@ export interface AmbientDot {
   };
 }
 
+export interface ChatMessage {
+  id: string;
+  sender: "me" | "them";
+  text: string;
+  timestamp: string;
+}
+
+export interface EmberGift {
+  id: string;
+  type: "blessing" | "star" | "gratitude";
+  label: string;
+  message: string;
+  icon?: string;
+}
+
 export interface Reflection {
   id: string;
   text: string;
   timestamp: string;
   authorTag?: string;
+  isEmber?: boolean;
 }
 
 export interface ThoughtStar {
@@ -37,11 +53,6 @@ export interface ThoughtStar {
   twinklePhase: number;
   twinkleSpeed: number;
   reflection: Reflection;
+  isEmber?: boolean;
 }
 
-export interface ChatMessage {
-  id: string;
-  sender: "me" | "them";
-  text: string;
-  timestamp: string;
-}

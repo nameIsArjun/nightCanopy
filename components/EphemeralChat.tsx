@@ -2,12 +2,13 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, Moon, Sparkles, X } from "lucide-react";
-import { AmbientDot } from "@/types/canopy";
+import { Send, Moon, Sparkles, X, Heart, Flame, Gift } from "lucide-react";
+import { AmbientDot, EmberGift } from "@/types/canopy";
 
 interface EphemeralChatProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose: (partingEmber?: EmberGift) => void;
+  onSendThankYou?: () => void;
   targetDot: AmbientDot | null;
 }
 
@@ -45,10 +46,13 @@ const NIGHT_OWL_RESPONSES = [
 export const EphemeralChat: React.FC<EphemeralChatProps> = ({
   isOpen,
   onClose,
+  onSendThankYou,
   targetDot,
 }) => {
   const [inputText, setInputText] = useState("");
   const [isLeaving, setIsLeaving] = useState(false);
+  const [isSelectingEmber, setIsSelectingEmber] = useState(false);
+  const [thankYouSent, setThankYouSent] = useState(false);
   const [messages, setMessages] = useState<SimpleChatMessage[]>([]);
   const [isInitialTyping, setIsInitialTyping] = useState(true);
   const [isCompanionTyping, setIsCompanionTyping] = useState(false);
@@ -110,22 +114,95 @@ export const EphemeralChat: React.FC<EphemeralChatProps> = ({
     }, 3500);
   };
 
-  // "Heading to Sleep" Off-Ramp with farewell message and 1.5s fade-out
-  const handleHeadingToSleep = () => {
-    if (isLeaving) return;
+  // Trigger Silent Thank You micro-interaction during active chat
+  const handleTriggerThankYou = () => {
+    if (thankYouSent) return;
+    setThankYouSent(true);
 
-    const farewellMsg: SimpleChatMessage = {
-      id: `farewell-${Date.now()}`,
-      sender: "them",
-      text: "Rest well, night owl. Closing chat...",
+    const gratitudeMsg: SimpleChatMessage = {
+      id: `thankyou-${Date.now()}`,
+      sender: "me",
+      text: "Sent a silent thank you 💖 Your presence mattered tonight.",
     };
 
-    setMessages((prev) => [...prev, farewellMsg]);
+    setMessages((prev) => [...prev, gratitudeMsg]);
+    if (onSendThankYou) {
+      onSendThankYou();
+    }
+  };
+
+  // Open Parting Ember Off-Ramp Drawer
+  const handleHeadingToSleep = () => {
+    if (isLeaving) return;
+    setIsSelectingEmber(true);
+  };
+
+  // Confirm Parting Ember Gift selection and execute 1.5s fade out
+  const handleSelectEmberGift = (emberType: "blessing" | "star" | "gratitude" | "none") => {
+    setIsSelectingEmber(false);
     setIsLeaving(true);
+
+    let ember: EmberGift | undefined;
+
+    if (emberType === "blessing") {
+      ember = {
+        id: `ember-${Date.now()}`,
+        type: "blessing",
+        label: "Warm Blessing",
+        message: "May peace follow you into rest tonight.",
+      };
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `farewell-${Date.now()}`,
+          sender: "them",
+          text: "Rest well, night owl. Warm blessing received 🌟",
+        },
+      ]);
+    } else if (emberType === "star") {
+      ember = {
+        id: `ember-${Date.now()}`,
+        type: "star",
+        label: "Parting Ember Star",
+        message: "A glowing ember star was left floating under the canopy sky.",
+      };
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `farewell-${Date.now()}`,
+          sender: "them",
+          text: "Rest well, night owl. Your ember star will shine in the canopy sky 🕯️",
+        },
+      ]);
+    } else if (emberType === "gratitude") {
+      ember = {
+        id: `ember-${Date.now()}`,
+        type: "gratitude",
+        label: "Silent Thank You",
+        message: "A quiet thank you was sent. Your presence mattered.",
+      };
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `farewell-${Date.now()}`,
+          sender: "them",
+          text: "Thank you for sharing this quiet space with me. Rest gently 💖",
+        },
+      ]);
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `farewell-${Date.now()}`,
+          sender: "them",
+          text: "Rest well, night owl. Closing chat...",
+        },
+      ]);
+    }
 
     // 1.5-second fade-out transition before closing modal
     setTimeout(() => {
-      onClose();
+      onClose(ember);
       setIsLeaving(false);
     }, 1500);
   };
@@ -140,7 +217,7 @@ export const EphemeralChat: React.FC<EphemeralChatProps> = ({
             animate={isLeaving ? { opacity: 0 } : { opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 1.5, ease: "easeInOut" }}
-            onClick={() => !isLeaving && onClose()}
+            onClick={() => !isLeaving && handleHeadingToSleep()}
             className="absolute inset-0 bg-black/75 backdrop-blur-md"
           />
 
@@ -160,7 +237,7 @@ export const EphemeralChat: React.FC<EphemeralChatProps> = ({
             }
             className="relative w-full sm:max-w-lg h-[82vh] sm:h-[620px] ambient-glass-card rounded-t-3xl sm:rounded-3xl flex flex-col shadow-2xl z-10 border border-white/10 overflow-hidden"
           >
-            {/* Header with Heading to Sleep Button */}
+            {/* Header with Heading to Sleep Button & Silent Gratitude */}
             <div className="p-4 border-b border-white/10 flex items-center justify-between bg-black/20">
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -178,18 +255,37 @@ export const EphemeralChat: React.FC<EphemeralChatProps> = ({
                 </div>
               </div>
 
-              {/* Prominent "Heading to sleep..." Exit Button */}
+              {/* Actions Header */}
               <div className="flex items-center gap-2">
+                {/* Silent Gratitude Button (Point 5) */}
+                <button
+                  onClick={handleTriggerThankYou}
+                  disabled={thankYouSent || isLeaving}
+                  className={`text-xs py-1.5 px-2.5 rounded-full flex items-center gap-1 border transition-all cursor-pointer ${
+                    thankYouSent
+                      ? "bg-pink-500/20 border-pink-400/30 text-pink-200"
+                      : "bg-white/5 border-white/10 text-pink-300 hover:bg-pink-500/10 hover:border-pink-500/30"
+                  }`}
+                  title="Send a silent thank you to companion"
+                >
+                  <Heart className={`w-3.5 h-3.5 ${thankYouSent ? "fill-pink-300 animate-pulse" : ""}`} />
+                  <span className="hidden sm:inline">
+                    {thankYouSent ? "Thanked 💖" : "Thank You"}
+                  </span>
+                </button>
+
+                {/* Prominent "Heading to sleep..." Exit Button */}
                 <button
                   onClick={handleHeadingToSleep}
                   disabled={isLeaving}
-                  className="ambient-glow-button text-xs py-1.5 px-3.5 rounded-full text-indigo-200 flex items-center gap-1.5 border border-indigo-500/30 bg-indigo-950/50 hover:bg-indigo-900/60 transition-all cursor-pointer disabled:opacity-50"
+                  className="ambient-glow-button text-xs py-1.5 px-3 rounded-full text-indigo-200 flex items-center gap-1.5 border border-indigo-500/30 bg-indigo-950/50 hover:bg-indigo-900/60 transition-all cursor-pointer disabled:opacity-50"
                 >
                   <Moon className="w-3.5 h-3.5 text-indigo-300" />
                   <span>Heading to sleep...</span>
                 </button>
+
                 <button
-                  onClick={onClose}
+                  onClick={handleHeadingToSleep}
                   disabled={isLeaving}
                   className="p-1.5 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors"
                 >
@@ -266,7 +362,7 @@ export const EphemeralChat: React.FC<EphemeralChatProps> = ({
                   value={inputText}
                   onChange={(e) => setInputText(e.target.value.slice(0, maxLength))}
                   maxLength={maxLength}
-                  disabled={isCompanionTyping || isInitialTyping || isLeaving}
+                  disabled={isCompanionTyping || isInitialTyping || isLeaving || isSelectingEmber}
                   placeholder="Share a quiet message..."
                   className="w-full bg-black/50 border border-white/10 rounded-full py-2.5 pl-4 pr-20 text-xs text-gray-200 placeholder-gray-500 focus:outline-none focus:border-amber-200/40 transition-colors disabled:opacity-50"
                 />
@@ -276,7 +372,7 @@ export const EphemeralChat: React.FC<EphemeralChatProps> = ({
                   </span>
                   <button
                     type="submit"
-                    disabled={!inputText.trim() || isCompanionTyping || isInitialTyping || isLeaving}
+                    disabled={!inputText.trim() || isCompanionTyping || isInitialTyping || isLeaving || isSelectingEmber}
                     className="p-1.5 rounded-full bg-amber-200/20 text-amber-200 hover:bg-amber-200/30 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                   >
                     <Send className="w-3.5 h-3.5" />
@@ -284,9 +380,105 @@ export const EphemeralChat: React.FC<EphemeralChatProps> = ({
                 </div>
               </div>
             </form>
+
+            {/* Point 2: Parting Ember Off-Ramp Drawer Modal */}
+            <AnimatePresence>
+              {isSelectingEmber && (
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 30 }}
+                  className="absolute inset-0 bg-black/90 backdrop-blur-lg p-6 flex flex-col justify-between z-30"
+                >
+                  <div>
+                    <div className="flex items-center gap-2 text-amber-200 mb-2">
+                      <Flame className="w-4 h-4 text-amber-300 animate-bounce" />
+                      <h4 className="text-sm font-medium uppercase tracking-wider">
+                        Leave a Parting Ember
+                      </h4>
+                    </div>
+                    <p className="text-xs text-gray-300 font-light leading-relaxed mb-6">
+                      Before fading back into the canopy, leave a warm gift behind so your companion knows they aren&apos;t abandoned.
+                    </p>
+
+                    <div className="space-y-3">
+                      {/* Option 1: Warm Blessing */}
+                      <button
+                        onClick={() => handleSelectEmberGift("blessing")}
+                        className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-amber-500/15 border border-white/10 hover:border-amber-400/40 flex items-center gap-3 text-left transition-all group"
+                      >
+                        <div className="p-2 rounded-xl bg-amber-400/20 text-amber-200 border border-amber-300/30">
+                          <Gift className="w-4 h-4" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium text-amber-100">
+                            🌟 Send a Warm Blessing
+                          </div>
+                          <p className="text-[11px] text-gray-400 font-light mt-0.5">
+                            &ldquo;May peace follow you into rest tonight.&rdquo;
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* Option 2: Parting Ember Star */}
+                      <button
+                        onClick={() => handleSelectEmberGift("star")}
+                        className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-indigo-500/15 border border-white/10 hover:border-indigo-400/40 flex items-center gap-3 text-left transition-all group"
+                      >
+                        <div className="p-2 rounded-xl bg-indigo-400/20 text-indigo-200 border border-indigo-300/30">
+                          <Flame className="w-4 h-4 text-indigo-300" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium text-indigo-100">
+                            🕯️ Leave a Glowing Ember Star
+                          </div>
+                          <p className="text-[11px] text-gray-400 font-light mt-0.5">
+                            Leaves a glowing amber star floating in the canopy sky for this soul.
+                          </p>
+                        </div>
+                      </button>
+
+                      {/* Option 3: Silent Thank You */}
+                      <button
+                        onClick={() => handleSelectEmberGift("gratitude")}
+                        className="w-full p-3.5 rounded-2xl bg-white/5 hover:bg-pink-500/15 border border-white/10 hover:border-pink-400/40 flex items-center gap-3 text-left transition-all group"
+                      >
+                        <div className="p-2 rounded-xl bg-pink-400/20 text-pink-200 border border-pink-300/30">
+                          <Heart className="w-4 h-4 text-pink-300" />
+                        </div>
+                        <div>
+                          <div className="text-xs font-medium text-pink-100">
+                            💖 Silent Thank You
+                          </div>
+                          <p className="text-[11px] text-gray-400 font-light mt-0.5">
+                            &ldquo;A quiet thank you was sent. Your presence mattered.&rdquo;
+                          </p>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-white/10 flex justify-between items-center">
+                    <button
+                      onClick={() => handleSelectEmberGift("none")}
+                      className="text-xs text-gray-400 hover:text-gray-200 transition-colors"
+                    >
+                      Just Exit Gently
+                    </button>
+                    <button
+                      onClick={() => setIsSelectingEmber(false)}
+                      className="px-4 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-xs text-gray-200 transition-colors"
+                    >
+                      Return to Chat
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </motion.div>
         </div>
       )}
     </AnimatePresence>
   );
 };
+
